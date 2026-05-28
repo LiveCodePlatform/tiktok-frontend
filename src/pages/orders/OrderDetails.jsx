@@ -1,19 +1,30 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import {
+  ArrowLeft,
+  Package,
+  ShoppingCart,
+  CheckCircle,
+  AlertTriangle,
+  Loader2,
+} from 'lucide-react'
+import { useToast } from '../../components/Toast'
 import orderService from '../../services/orderService'
 
 function OrderDetails() {
-  const { salecode } = useParams()
+  const { productCode } = useParams()
+  const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [checkoutStatus, setCheckoutStatus] = useState(null)
+  const [isCheckingOut, setIsCheckingOut] = useState(false)
 
   const checkStock = async () => {
     setLoading(true)
     try {
-      const result = await orderService.checkOrder(salecode)
-      setData(result.data) // Access data.data
+      const result = await orderService.checkOrder(productCode)
+      setData(result.data)
       setError(null)
     } catch (err) {
       if (err.response && err.response.status === 404) {
@@ -28,107 +39,174 @@ function OrderDetails() {
 
   useEffect(() => {
     checkStock()
-  }, [salecode])
+  }, [productCode])
 
   const handleCheckout = async () => {
+    setIsCheckingOut(true)
     try {
-      const result = await orderService.checkout({ 
-        username: 'Web Customer',
-        salecode 
+      const result = await orderService.createOrder({
+        products: [
+          {
+            stockId: data.product._id,
+            quantity: 1
+          }
+        ],
+        name: 'Web Customer',
+        phone: '0900000000',
+        address: 'Online Order',
+        paymentMethod: 'cash-on-delivery'
       })
       setCheckoutStatus({ success: true, message: result.message })
-      checkStock() // Refresh stock info
+      checkStock()
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message
       setCheckoutStatus({ success: false, message: errorMsg })
+    } finally {
+      setIsCheckingOut(false)
     }
   }
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-        <p className="text-gray-600 font-medium">Checking stock...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
+          <p className="text-gray-500">Loading product details...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="max-w-md w-full">
-        <Link to="/" className="text-blue-600 hover:text-blue-800 mb-6 inline-flex items-center gap-2 font-medium transition-colors">
-          ← Back to Dashboard
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
         </Link>
 
         {error === 'Invalid Code' ? (
-          <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 text-center animate-in zoom-in duration-300">
-            <div className="text-5xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Invalid Code</h2>
-            <p className="text-gray-500">The sale code <span className="font-mono font-bold text-red-500 uppercase">{salecode}</span> does not exist in our system.</p>
+          <div className="card p-8 text-center animate-in zoom-in duration-300">
+            <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8 text-amber-500" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Invalid Code</h2>
+            <p className="text-gray-500 text-sm">
+              Product code{' '}
+              <span className="font-mono font-bold text-red-500">{productCode}</span>{' '}
+              does not exist in our system.
+            </p>
           </div>
         ) : error ? (
-          <div className="bg-red-50 p-6 rounded-xl border border-red-200 text-red-700 text-center">
-            {error}
+          <div className="card p-8 text-center">
+            <p className="text-red-500">{error}</p>
           </div>
         ) : data?.message === 'Out of stock' ? (
-          <div className="bg-white p-8 rounded-2xl shadow-xl border-t-4 border-red-500 text-center animate-in slide-in-from-bottom duration-500">
-            <div className="text-5xl mb-4">🚫</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Out of Stock</h2>
-            <p className="text-red-600 font-medium mb-4 uppercase tracking-wide italic">Sorry, this item is out of stock</p>
-            <p className="text-gray-500 text-sm">Please check back later or contact support for more details.</p>
+          <div className="card p-8 text-center border-t-4 border-red-500 animate-in slide-in-from-bottom duration-300">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="w-8 h-8 text-red-500" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Out of Stock</h2>
+            <p className="text-gray-500 text-sm">
+              Sorry, this item is currently unavailable. Please check back later.
+            </p>
           </div>
         ) : (
-          <div className="bg-white p-8 rounded-2xl shadow-xl border-t-4 border-green-500 animate-in slide-in-from-bottom duration-500">
-            <div className="flex justify-between items-start mb-6">
-              <div className="flex gap-4">
-                {data.product.imageUrl && (
-                  <img src={data.product.imageUrl} alt={data.product.name} className="w-20 h-20 object-cover rounded-xl shadow-sm border border-gray-100" />
-                )}
-                <div>
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider mb-2 inline-block">
-                    In Stock
-                  </span>
-                  <h2 className="text-2xl font-bold text-gray-900">{data.product.name}</h2>
-                  <p className="text-sm text-gray-500">Code: {data.product.salecode}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-black text-emerald-600">${data.product.price.toLocaleString()}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4 mb-8">
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                <p className="text-xs text-gray-400 uppercase font-bold mb-1">Description</p>
-                <p className="text-gray-700 text-sm leading-relaxed">{data.product.description || 'No description provided.'}</p>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500 font-medium">Category</span>
-                <span className="text-gray-900 font-bold">{data.product.category || 'Uncategorized'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500 font-medium">Available Units</span>
-                <span className="text-gray-900 font-bold">{data.product.quantity}</span>
-              </div>
-            </div>
-
-            {checkoutStatus && (
-              <div className={`mb-6 p-4 rounded-lg text-sm font-medium ${checkoutStatus.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                {checkoutStatus.message}
+          <div className="card overflow-hidden border-t-4 border-emerald-500 animate-in slide-in-from-bottom duration-300">
+            {/* Product Image */}
+            {data.product?.imageUrl && (
+              <div className="aspect-video bg-gray-100">
+                <img
+                  src={data.product.imageUrl}
+                  alt={data.product.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
             )}
 
-            <button 
-              onClick={handleCheckout}
-              disabled={data.product.quantity <= 0}
-              className={`w-full py-4 rounded-xl font-bold text-lg transform hover:scale-[1.02] transition-all shadow-lg active:scale-95 ${
-                data.product.quantity <= 0 
-                ? 'bg-gray-300 cursor-not-allowed text-gray-500' 
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              {data.product.quantity <= 0 ? 'Out of Stock' : 'Confirm Checkout (1 Unit)'}
-            </button>
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <span className="badge-success mb-2 inline-flex">In Stock</span>
+                  <h2 className="text-xl font-bold text-gray-900">{data.product?.name}</h2>
+                  <p className="text-sm text-gray-500 font-mono mt-1">{data.product?.productCode}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-emerald-600">
+                    {data.product?.price?.toLocaleString()} MMK
+                  </p>
+                </div>
+              </div>
+
+              {/* Details */}
+              <div className="space-y-3 mb-6">
+                {data.product?.description && (
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-400 uppercase font-medium mb-1">Description</p>
+                    <p className="text-sm text-gray-700">{data.product.description}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-400 uppercase font-medium mb-1">Category</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {data.product?.category || 'Uncategorized'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-400 uppercase font-medium mb-1">Available</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {data.product?.quantity} units
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Checkout Status */}
+              {checkoutStatus && (
+                <div className={`mb-4 p-3 rounded-lg text-sm font-medium flex items-center gap-2 ${
+                  checkoutStatus.success
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {checkoutStatus.success ? (
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  )}
+                  {checkoutStatus.message}
+                </div>
+              )}
+
+              {/* Checkout Button */}
+              <button
+                onClick={handleCheckout}
+                disabled={data.product?.quantity <= 0 || isCheckingOut}
+                className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
+                  data.product?.quantity <= 0
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    : 'btn-primary'
+                }`}
+              >
+                {isCheckingOut ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : data.product?.quantity <= 0 ? (
+                  'Out of Stock'
+                ) : (
+                  <>
+                    <ShoppingCart className="w-5 h-5" />
+                    Confirm Checkout (1 Unit)
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
       </div>

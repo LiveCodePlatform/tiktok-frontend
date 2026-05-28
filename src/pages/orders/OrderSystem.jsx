@@ -1,101 +1,192 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Search, ShoppingCart, CheckCircle, XCircle, ArrowRight, Package } from 'lucide-react'
+import { useToast } from '../../components/Toast'
 import orderService from '../../services/orderService'
+import productService from '../../services/productService'
 
-function OrderSystem({ showMessage, fetchProducts }) {
-  const [orderCheck, setOrderCheck] = useState({ salecode: '', result: null })
+function OrderSystem() {
+  const toast = useToast()
+  const [productCode, setProductCode] = useState('')
+  const [result, setResult] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isChecking, setIsChecking] = useState(false)
 
   const handleCheckOrder = async () => {
-    if (!orderCheck.salecode.trim()) return
+    if (!productCode.trim()) return
+    setIsChecking(true)
     try {
-      const data = await orderService.checkOrder(orderCheck.salecode)
-      setOrderCheck({ ...orderCheck, result: data.data })
+      const data = await orderService.checkOrder(productCode.trim())
+      setResult(data.data)
     } catch (err) {
-      setOrderCheck({ ...orderCheck, result: err.response?.data || { message: 'Error checking order' } })
+      setResult(err.response?.data || { message: 'Error checking order' })
+    } finally {
+      setIsChecking(false)
     }
   }
 
   const handleCheckout = async () => {
-    if (!orderCheck.salecode.trim()) return
+    if (!result?.product) return
     setIsLoading(true)
     try {
-      const data = await orderService.checkout({ 
-        username: 'Dashboard User', 
-        salecode: orderCheck.salecode 
+      const data = await orderService.createOrder({
+        products: [
+          {
+            stockId: result.product._id,
+            quantity: 1
+          }
+        ],
+        name: 'Dashboard User',
+        phone: '0900000000',
+        address: 'Dashboard Order',
+        paymentMethod: 'cash-on-delivery'
       })
-      showMessage(data.message, 'success')
-      setOrderCheck({ 
-        ...orderCheck, 
-        result: data.data 
-      })
-      if (fetchProducts) fetchProducts()
+      toast.success(data.message || 'Order placed successfully!')
+      setResult(null)
+      setProductCode('')
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message
-      showMessage(`Checkout failed: ${errorMsg}`, 'error')
+      toast.error(errorMsg)
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleCheckOrder()
+  }
+
   return (
-    <div className="max-w-2xl mx-auto animate-in slide-in-from-bottom duration-500">
-      <div className="bg-white p-10 rounded-2xl shadow-xl border border-gray-100 text-center">
-        <h3 className="text-2xl font-bold mb-2">Order System</h3>
-        <p className="text-gray-500 mb-8 text-sm">Check stock or place an order using sale codes.</p>
-        
-        <div className="max-w-md mx-auto mb-10 space-y-4">
-          <input 
-            type="text" 
-            placeholder="Enter Code (e.g. A001 or A001=3)" 
-            value={orderCheck.salecode} 
-            onChange={(e) => setOrderCheck({ ...orderCheck, salecode: e.target.value })} 
-            onKeyPress={(e) => e.key === 'Enter' && handleCheckOrder()}
-            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-center text-lg font-bold placeholder:font-normal placeholder:text-base uppercase"
-          />
-          <div className="flex gap-2">
-            <button onClick={handleCheckOrder} className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-200 transition-all">
-              Check Stock
-            </button>
-            <button onClick={handleCheckout} className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-95">
-              {isLoading ? 'Processing...' : 'Checkout'}
-            </button>
+    <div className="animate-in fade-in duration-300">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-900">Order System</h2>
+        <p className="text-sm text-gray-500 mt-1">Check stock or place orders using product codes</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Input Card */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <Search className="w-5 h-5 text-blue-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900">Product Lookup</h3>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="label">Product Code</label>
+              <input
+                type="text"
+                value={productCode}
+                onChange={(e) => setProductCode(e.target.value.toUpperCase())}
+                onKeyDown={handleKeyDown}
+                placeholder="e.g. A001"
+                className="input-lg font-mono uppercase text-center text-lg tracking-widest"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCheckOrder}
+                disabled={!productCode.trim() || isChecking}
+                className="btn-secondary flex-1"
+              >
+                {isChecking ? (
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
+                Check Stock
+              </button>
+              <button
+                onClick={handleCheckout}
+                disabled={!result?.product || isLoading}
+                className="btn-primary flex-1"
+              >
+                {isLoading ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <ShoppingCart className="w-4 h-4" />
+                )}
+                Quick Order
+              </button>
+            </div>
           </div>
         </div>
 
-        {orderCheck.result && (
-          <div className={`p-8 rounded-2xl border-2 transition-all transform animate-in zoom-in duration-300 ${
-            (orderCheck.result.message === 'In stock' || orderCheck.result.message === 'Success' || orderCheck.result.message === 'Item is available')
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
-            : 'bg-rose-50 border-rose-200 text-rose-800'
-          }`}>
-            <div className="text-4xl mb-4">
-              {(orderCheck.result.message === 'In stock' || orderCheck.result.message === 'Success' || orderCheck.result.message === 'Item is available') ? '✅' : '❌'}
+        {/* Result Card */}
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className={`p-2 rounded-lg ${
+              result?.message === 'In stock' || result?.message === 'Item is available'
+                ? 'bg-emerald-50'
+                : 'bg-gray-50'
+            }`}>
+              {result?.message === 'In stock' || result?.message === 'Item is available' ? (
+                <CheckCircle className="w-5 h-5 text-emerald-600" />
+              ) : result ? (
+                <XCircle className="w-5 h-5 text-red-500" />
+              ) : (
+                <Package className="w-5 h-5 text-gray-400" />
+              )}
             </div>
-            <h4 className="text-2xl font-black mb-2 uppercase tracking-tight">{orderCheck.result.message}</h4>
-            
-            {orderCheck.result.product && (
-              <div className="mt-4 pt-4 border-t border-emerald-100/50 space-y-1">
-                <p className="text-lg font-bold">{orderCheck.result.product.name}</p>
-                <p className="text-sm opacity-80">Remaining Units: {orderCheck.result.product.quantity}</p>
-                <Link 
-                  to={`/order/${orderCheck.result.product.salecode}`}
-                  className="mt-4 inline-block bg-white text-gray-800 px-4 py-2 rounded-lg font-bold shadow-sm hover:shadow-md transition-all border border-gray-100"
-                >
-                  View Order Page
-                </Link>
-              </div>
-            )}
-
-            {orderCheck.result._id && (
-              <div className="mt-4 pt-4 border-t border-emerald-100/50 space-y-1">
-                <p className="text-lg font-bold">Order Confirmed!</p>
-                <p className="text-sm opacity-80">Total Price: ${orderCheck.result.totalPrice}</p>
-                <p className="text-sm opacity-80">Order ID: {orderCheck.result._id}</p>
-              </div>
-            )}
+            <h3 className="font-semibold text-gray-900">Result</h3>
           </div>
-        )}
+
+          {!result ? (
+            <div className="text-center py-8">
+              <Package className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">Enter a product code to see results</p>
+            </div>
+          ) : result.message === 'In stock' || result.message === 'Item is available' ? (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="flex items-start gap-4">
+                {result.product?.imageUrl ? (
+                  <img
+                    src={result.product.imageUrl}
+                    alt={result.product.name}
+                    className="w-16 h-16 rounded-xl object-cover border border-gray-200"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center">
+                    <Package className="w-8 h-8 text-gray-300" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-gray-900">{result.product?.name}</h4>
+                  <p className="text-sm text-gray-500 font-mono">{result.product?.productCode}</p>
+                  <p className="text-lg font-bold text-emerald-600 mt-1">
+                    {result.product?.price?.toLocaleString()} MMK
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-sm text-gray-600">Remaining Stock</span>
+                <span className={`font-bold ${
+                  result.product?.quantity > 10 ? 'text-emerald-600' :
+                  result.product?.quantity > 0 ? 'text-amber-600' : 'text-red-600'
+                }`}>
+                  {result.product?.quantity} units
+                </span>
+              </div>
+
+              <Link
+                to={`/order/${result.product?.productCode}`}
+                className="btn-secondary w-full justify-center"
+              >
+                View Order Page
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          ) : (
+            <div className="text-center py-6 animate-in fade-in duration-200">
+              <XCircle className="w-12 h-12 text-red-300 mx-auto mb-3" />
+              <p className="text-red-600 font-medium">{result.message}</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

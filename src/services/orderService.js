@@ -6,13 +6,13 @@ const orderService = {
     return response.data;
   },
 
-  checkOrder: async (salecode) => {
-    const response = await api.get(`/order/${salecode}`);
+  checkOrder: async (productCode) => {
+    const response = await api.get(`/order/${productCode}`);
     return response.data;
   },
 
-  checkout: async (orderData) => {
-    const response = await api.post('/order/checkout', orderData);
+  createOrder: async (orderData) => {
+    const response = await api.post('/orders', orderData);
     return response.data;
   }
 };

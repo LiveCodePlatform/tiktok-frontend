@@ -1,66 +1,67 @@
 import { useState } from 'react'
+import { Minus, Plus, Loader2 } from 'lucide-react'
+import { useToast } from '../Toast'
 import productService from '../../services/productService'
 
 function StockAdjuster({ productId, currentQuantity, onUpdate }) {
+  const toast = useToast()
   const [value, setValue] = useState(1)
-  const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleAdjust = async (isAddition) => {
-    const adjustmentValue = isAddition ? value : -value
-    
-    // Prevent negative result locally before even calling API
-    if (!isAddition && currentQuantity < value) {
-      alert("Cannot remove more than available stock")
+  const handleAdjust = async (adjustment) => {
+    if (isLoading) return
+
+    const newValue = adjustment > 0 ? value : -value
+    const newQuantity = currentQuantity + newValue
+
+    if (newQuantity < 0) {
+      toast.warning('Stock cannot go below zero')
       return
     }
 
-    setLoading(true)
+    setIsLoading(true)
     try {
-      const data = await productService.adjustStock(productId, adjustmentValue)
-      
+      const data = await productService.adjustStock(productId, newValue)
       if (data.success) {
-        onUpdate(data.data) // Pass the updated product back
-        setValue(1) // Reset input
+        onUpdate(data.data)
+        toast.success(`Stock ${adjustment > 0 ? 'added' : 'removed'} successfully`)
       }
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message
-      alert(`Adjustment failed: ${errorMsg}`)
+      toast.error(errorMsg)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-2">
-      <div className="relative w-20">
-        <input 
-          type="number" 
-          min="1"
-          value={value}
-          onChange={(e) => setValue(Math.max(1, parseInt(e.target.value) || 0))}
-          className="w-full p-1.5 border border-gray-200 rounded text-center text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-          disabled={loading}
-        />
-      </div>
-      
-      <div className="flex gap-1">
-        <button 
-          onClick={() => handleAdjust(true)}
-          disabled={loading}
-          className="p-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center min-w-[32px]"
-          title="Add Stock"
-        >
-          {loading ? <span className="animate-spin text-xs">🌀</span> : <span className="font-bold">+</span>}
-        </button>
-        <button 
-          onClick={() => handleAdjust(false)}
-          disabled={loading || currentQuantity === 0}
-          className="p-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center min-w-[32px]"
-          title="Remove Stock"
-        >
-          {loading ? <span className="animate-spin text-xs">🌀</span> : <span className="font-bold">-</span>}
-        </button>
-      </div>
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => handleAdjust(-1)}
+        disabled={isLoading || currentQuantity <= 0}
+        className="p-1.5 rounded-md bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        title="Remove stock"
+      >
+        {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Minus className="w-3.5 h-3.5" />}
+      </button>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => {
+          const v = parseInt(e.target.value, 10)
+          if (v > 0) setValue(v)
+        }}
+        className="w-12 text-center text-sm font-medium border border-gray-200 rounded-md py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        min="1"
+      />
+      <button
+        onClick={() => handleAdjust(1)}
+        disabled={isLoading}
+        className="p-1.5 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        title="Add stock"
+      >
+        {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+      </button>
     </div>
   )
 }
