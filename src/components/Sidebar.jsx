@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Package,
@@ -7,15 +7,15 @@ import {
   History,
   X,
   Store,
-} from 'lucide-react'
+} from "lucide-react";
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/products', icon: Package, label: 'Products' },
-  { to: '/products/new', icon: Plus, label: 'Add Product' },
-  { to: '/orders', icon: ShoppingCart, label: 'Order System' },
-  { to: '/orders/history', icon: History, label: 'Order History' },
-]
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
+  { to: "/products", icon: Package, label: "Products" },
+  { to: "/products/new", icon: Plus, label: "Add Product" },
+  // { to: '/orders', icon: ShoppingCart, label: 'Order System' },
+  { to: "/orders/history", icon: History, label: "Order History" },
+];
 
 function Sidebar({ isOpen, onClose }) {
   return (
@@ -34,7 +34,7 @@ function Sidebar({ isOpen, onClose }) {
           fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50
           transform transition-transform duration-300 ease-in-out
           lg:translate-x-0 lg:static lg:z-auto
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         {/* Logo */}
@@ -65,8 +65,8 @@ function Sidebar({ isOpen, onClose }) {
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150
                 ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700 border border-blue-100'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-transparent'
+                    ? "bg-blue-50 text-blue-700 border border-blue-100"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-transparent"
                 }`
               }
             >
@@ -84,7 +84,7 @@ function Sidebar({ isOpen, onClose }) {
         </div>
       </aside>
     </>
-  )
+  );
 }
 
-export default Sidebar
+export default Sidebar;

@@ -1,20 +1,20 @@
-import { useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
-import { Menu, Search, Bell } from 'lucide-react'
-import Sidebar from '../components/Sidebar'
+import { useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import { Menu, Search, Bell } from "lucide-react";
+import Sidebar from "../components/Sidebar";
 
 const pageTitles = {
-  '/': 'Dashboard',
-  '/products': 'Products',
-  '/products/new': 'Add Product',
-  '/orders': 'Order System',
-  '/orders/history': 'Order History',
-}
+  "/": "Dashboard",
+  "/products": "Products",
+  "/products/new": "Add Product",
+  "/orders": "Order System",
+  "/orders/history": "Order History",
+};
 
 function DashboardLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const location = useLocation()
-  const currentTitle = pageTitles[location.pathname] || 'Dashboard'
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+  const currentTitle = pageTitles[location.pathname] || "Dashboard";
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -30,7 +30,9 @@ function DashboardLayout() {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <h1 className="text-lg font-semibold text-gray-900">{currentTitle}</h1>
+            <h1 className="text-lg font-semibold text-gray-900">
+              {currentTitle}
+            </h1>
           </div>
 
           <div className="flex items-center gap-2">
@@ -41,9 +43,6 @@ function DashboardLayout() {
                 placeholder="Search..."
                 className="bg-transparent border-none outline-none text-sm text-gray-700 placeholder:text-gray-400 w-full"
               />
-              <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium text-gray-400 bg-gray-200 rounded">
-                ⌘K
-              </kbd>
             </div>
             <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 relative">
               <Bell className="w-5 h-5" />
@@ -60,7 +59,7 @@ function DashboardLayout() {
         </main>
       </div>
     </div>
-  )
+  );
 }
 
-export default DashboardLayout
+export default DashboardLayout;
