@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Trash2, Plus, RefreshCw, Package } from 'lucide-react'
+import { Pencil, Trash2, Plus, RefreshCw, Package, Search } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import StockAdjuster from '../../components/products/StockAdjuster'
 import EditProductModal from '../../components/products/EditProductModal'
@@ -13,6 +13,9 @@ function Inventory() {
   const [editingProduct, setEditingProduct] = useState(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
+  const [categories, setCategories] = useState([])
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const fetchProducts = async () => {
     setIsLoading(true)
@@ -26,8 +29,40 @@ function Inventory() {
     }
   }
 
+  const fetchCategories = async () => {
+    try {
+      const data = await productService.getCategories()
+      setCategories(data.data || [])
+    } catch (err) {
+      console.error('Error fetching categories:', err)
+    }
+  }
+
   useEffect(() => {
-    fetchProducts()
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.trim()) {
+        const performSearch = async () => {
+          setIsLoading(true)
+          try {
+            const data = await productService.searchProducts(searchQuery.trim())
+            setProducts(data.data || [])
+          } catch (err) {
+            console.error('Error searching products:', err)
+          } finally {
+            setIsLoading(false)
+          }
+        }
+        performSearch()
+      } else {
+        fetchProducts()
+      }
+    }, 300)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchQuery])
+
+  useEffect(() => {
+    fetchCategories()
   }, [])
 
   const handleEdit = (product) => {
@@ -65,6 +100,10 @@ function Inventory() {
     }
   }
 
+  const filteredProducts = selectedCategory
+    ? products.filter(product => product.category === selectedCategory)
+    : products
+
   return (
     <div className="animate-in fade-in duration-300">
       <div className="flex items-center justify-between mb-6">
@@ -73,6 +112,26 @@ function Inventory() {
           <p className="text-sm text-gray-500 mt-1">Manage your product catalog</p>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-gray-200 w-64 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+            <Search className="w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search code or name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-transparent border-none outline-none text-sm text-gray-700 placeholder:text-gray-400 w-full"
+            />
+          </div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 font-medium"
+          >
+            <option value="">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
           <button onClick={fetchProducts} className="btn-ghost text-sm">
             <RefreshCw className="w-4 h-4" />
             Refresh
@@ -99,7 +158,7 @@ function Inventory() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {products.length === 0 ? (
+              {filteredProducts.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="px-6 py-16 text-center">
                     <div className="flex flex-col items-center">
@@ -116,7 +175,7 @@ function Inventory() {
                   </td>
                 </tr>
               ) : (
-                products.map(product => (
+                filteredProducts.map(product => (
                   <tr key={product._id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="table-cell">
                       <div className="flex items-center gap-3">

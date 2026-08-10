@@ -32,7 +32,7 @@ function OrderSystem() {
       const data = await orderService.createOrder({
         products: [
           {
-            stockId: result.product._id,
+            productCode: result.product.productCode,
             quantity: 1
           }
         ],

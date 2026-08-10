@@ -24,6 +24,16 @@ const productService = {
   adjustStock: async (id, adjustmentValue) => {
     const response = await api.patch(`/products/${id}/adjust-stock`, { adjustmentValue });
     return response.data;
+  },
+
+  getCategories: async () => {
+    const response = await api.get('/products/categories');
+    return response.data;
+  },
+
+  searchProducts: async (query) => {
+    const response = await api.get(`/products/search?q=${encodeURIComponent(query)}`);
+    return response.data;
   }
 };
 

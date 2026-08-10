@@ -47,7 +47,7 @@ function OrderDetails() {
       const result = await orderService.createOrder({
         products: [
           {
-            stockId: data.product._id,
+            productCode: data.product.productCode,
             quantity: 1
           }
         ],
