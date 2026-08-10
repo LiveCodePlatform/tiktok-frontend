@@ -20,7 +20,7 @@ function Inventory() {
   const fetchProducts = async () => {
     setIsLoading(true)
     try {
-      const data = await productService.getProducts()
+      const data = await productService.getProducts(selectedCategory)
       setProducts(data.data || [])
     } catch (err) {
       console.error('Error fetching products:', err)
@@ -59,7 +59,7 @@ function Inventory() {
     }, 300)
 
     return () => clearTimeout(delayDebounceFn)
-  }, [searchQuery])
+  }, [searchQuery, selectedCategory])
 
   useEffect(() => {
     fetchCategories()
@@ -100,9 +100,7 @@ function Inventory() {
     }
   }
 
-  const filteredProducts = selectedCategory
-    ? products.filter(product => product.category === selectedCategory)
-    : products
+  const filteredProducts = products
 
   return (
     <div className="animate-in fade-in duration-300">

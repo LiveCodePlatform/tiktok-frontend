@@ -1,8 +1,9 @@
 import api from './api';
 
 const productService = {
-  getProducts: async () => {
-    const response = await api.get('/products');
+  getProducts: async (category) => {
+    const url = category ? `/products?category=${encodeURIComponent(category)}` : '/products';
+    const response = await api.get(url);
     return response.data;
   },
 
