@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Trash2, Plus, RefreshCw, Package, Search } from 'lucide-react'
+import { Pencil, Trash2, Plus, RefreshCw, Package, Search, FileSpreadsheet } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import StockAdjuster from '../../components/products/StockAdjuster'
 import EditProductModal from '../../components/products/EditProductModal'
+import ExcelImportModal from '../../components/products/ExcelImportModal'
 import productService from '../../services/productService'
 
 function Inventory() {
@@ -12,6 +13,7 @@ function Inventory() {
   const [isLoading, setIsLoading] = useState(true)
   const [editingProduct, setEditingProduct] = useState(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [deleteId, setDeleteId] = useState(null)
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('')
@@ -134,6 +136,13 @@ function Inventory() {
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            Import Excel
+          </button>
           <Link to="/products/new" className="btn-primary text-sm">
             <Plus className="w-4 h-4" />
             Add Product
@@ -164,11 +173,20 @@ function Inventory() {
                         <Package className="w-7 h-7 text-gray-400" />
                       </div>
                       <p className="text-gray-500 font-medium">No products found</p>
-                      <p className="text-sm text-gray-400 mt-1">Get started by adding a new product</p>
-                      <Link to="/products/new" className="btn-primary mt-4 text-sm">
-                        <Plus className="w-4 h-4" />
-                        Add Product
-                      </Link>
+                      <p className="text-sm text-gray-400 mt-1">Get started by adding a new product or importing from Excel</p>
+                      <div className="flex items-center gap-3 mt-4">
+                        <button
+                          onClick={() => setIsImportModalOpen(true)}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
+                        >
+                          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                          Import Excel
+                        </button>
+                        <Link to="/products/new" className="btn-primary text-sm">
+                          <Plus className="w-4 h-4" />
+                          Add Product
+                        </Link>
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -288,6 +306,15 @@ function Inventory() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleUpdateProduct}
+      />
+
+      <ExcelImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => {
+          fetchProducts()
+          fetchCategories()
+        }}
       />
     </div>
   )

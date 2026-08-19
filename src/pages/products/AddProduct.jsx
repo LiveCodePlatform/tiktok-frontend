@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Upload, X, Image as ImageIcon } from 'lucide-react'
+import { Upload, X, Image as ImageIcon, FileSpreadsheet } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import productService from '../../services/productService'
+import ExcelImportModal from '../../components/products/ExcelImportModal'
 
 function AddProduct() {
   const navigate = useNavigate()
   const toast = useToast()
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -83,9 +85,19 @@ function AddProduct() {
 
   return (
     <div className="animate-in fade-in duration-300">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Add New Product</h2>
-        <p className="text-sm text-gray-500 mt-1">Fill in the details to add a new product to inventory</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Add New Product</h2>
+          <p className="text-sm text-gray-500 mt-1">Fill in the details to add a new product to inventory</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsImportModalOpen(true)}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
+        >
+          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+          Bulk Import Excel
+        </button>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -250,6 +262,14 @@ function AddProduct() {
           </div>
         </div>
       </form>
+
+      <ExcelImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => {
+          navigate('/products')
+        }}
+      />
     </div>
   )
 }
