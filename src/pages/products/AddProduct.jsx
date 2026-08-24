@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Upload, X, Image as ImageIcon, FileSpreadsheet } from 'lucide-react'
 import { useToast } from '../../components/Toast'
@@ -9,6 +9,7 @@ function AddProduct() {
   const navigate = useNavigate()
   const toast = useToast()
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [categories, setCategories] = useState([])
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -16,10 +17,25 @@ function AddProduct() {
     quantity: '',
     productCode: '',
     category: '',
+    sellingMethod: 'none',
+    crossSellCategory: '',
     image: null,
   })
   const [previewUrl, setPreviewUrl] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showCustomCrossSellInput, setShowCustomCrossSellInput] = useState(false)
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await productService.getCategories()
+        setCategories(res.data || [])
+      } catch (err) {
+        console.error('Failed to fetch categories:', err)
+      }
+    }
+    fetchCategories()
+  }, [])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -58,6 +74,8 @@ function AddProduct() {
       data.append('quantity', formData.quantity)
       data.append('productCode', formData.productCode)
       data.append('category', formData.category)
+      data.append('sellingMethod', formData.sellingMethod)
+      data.append('crossSellCategory', formData.crossSellCategory)
       if (formData.image) {
         data.append('image', formData.image)
       }
@@ -66,7 +84,8 @@ function AddProduct() {
 
       setFormData({
         name: '', price: '', description: '', quantity: '',
-        productCode: '', category: '', image: null,
+        productCode: '', category: '', sellingMethod: 'none',
+        crossSellCategory: '', image: null,
       })
       removeImage()
 
@@ -218,6 +237,83 @@ function AddProduct() {
                   className="input"
                   placeholder="e.g. Electronics, Clothing"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="label">Selling Method</label>
+                  <select
+                    name="sellingMethod"
+                    value={formData.sellingMethod}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        sellingMethod: val,
+                        crossSellCategory: val === 'cross-sell' ? prev.crossSellCategory : ''
+                      }))
+                      if (val !== 'cross-sell') {
+                        setShowCustomCrossSellInput(false)
+                      }
+                    }}
+                    className="input"
+                  >
+                    <option value="none">None</option>
+                    <option value="upsell">Up-selling</option>
+                    <option value="cross-sell">Cross-selling</option>
+                  </select>
+                </div>
+                {formData.sellingMethod === 'cross-sell' && (
+                  <div>
+                    <label className="label">Cross-sell Target Category</label>
+                    {!showCustomCrossSellInput ? (
+                      <select
+                        value={formData.crossSellCategory}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          if (val === '__custom__') {
+                            setShowCustomCrossSellInput(true)
+                            setFormData(prev => ({ ...prev, crossSellCategory: '' }))
+                          } else {
+                            setFormData(prev => ({ ...prev, crossSellCategory: val }))
+                          }
+                        }}
+                        className="input"
+                        required
+                      >
+                        <option value="">Select a category</option>
+                        {categories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                        <option value="__custom__">Or enter a new category...</option>
+                      </select>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          name="crossSellCategory"
+                          value={formData.crossSellCategory}
+                          onChange={handleInputChange}
+                          className="input"
+                          placeholder="e.g. Accessories"
+                          required
+                        />
+                        {categories.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowCustomCrossSellInput(false)
+                              setFormData(prev => ({ ...prev, crossSellCategory: '' }))
+                            }}
+                            className="btn-secondary px-3"
+                          >
+                            List
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
