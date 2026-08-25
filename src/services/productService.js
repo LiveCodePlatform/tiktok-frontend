@@ -22,6 +22,11 @@ const productService = {
     return response.data;
   },
 
+  bulkDeleteProducts: async (ids) => {
+    const response = await api.post('/products/bulk-delete', { ids });
+    return response.data;
+  },
+
   adjustStock: async (id, adjustmentValue) => {
     const response = await api.patch(`/products/${id}/adjust-stock`, { adjustmentValue });
     return response.data;
