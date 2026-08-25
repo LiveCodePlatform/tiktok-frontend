@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, RefreshCw, Clock, ShoppingCart, Trash2, AlertTriangle, Loader2, X } from 'lucide-react'
+import { Search, RefreshCw, Clock, ShoppingCart, Trash2, AlertTriangle, Loader2, X, ChevronDown } from 'lucide-react'
 import { useToast } from '../../components/Toast'
 import orderService from '../../services/orderService'
 
@@ -15,6 +15,7 @@ function OrderHistory() {
   const [deleteId, setDeleteId] = useState(null)
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const selectAllCheckboxRef = useRef(null)
 
   useEffect(() => {
@@ -69,6 +70,36 @@ function OrderHistory() {
     )
   }
 
+  const handleSingleStatusChange = async (id, newStatus) => {
+    try {
+      const res = await orderService.updateOrderStatus(id, newStatus)
+      if (res.success) {
+        setOrders(prev => prev.map(o => o._id === id ? { ...o, status: newStatus } : o))
+        toast.success(`Order status updated to "${newStatus}"`)
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message
+      toast.error(`Failed to update status: ${errorMsg}`)
+    }
+  }
+
+  const handleBulkStatusChange = async (newStatus) => {
+    if (selectedIds.length === 0) return
+    setIsUpdatingStatus(true)
+    try {
+      const res = await orderService.bulkUpdateOrderStatus(selectedIds, newStatus)
+      if (res.success) {
+        setOrders(prev => prev.map(o => selectedIds.includes(o._id) ? { ...o, status: newStatus } : o))
+        toast.success(`Updated ${res.data?.updatedCount || selectedIds.length} order(s) to "${newStatus}"`)
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message
+      toast.error(`Failed to update status: ${errorMsg}`)
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
+
   const handleDeleteSingle = async () => {
     if (!deleteId) return
     setIsDeleting(true)
@@ -116,6 +147,7 @@ function OrderHistory() {
     all: orders.length,
     pending: orders.filter(o => o.status === 'pending').length,
     completed: orders.filter(o => o.status === 'completed').length,
+    cancelled: orders.filter(o => o.status === 'cancelled').length,
   }
 
   return (
@@ -144,7 +176,7 @@ function OrderHistory() {
           />
         </div>
         <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
-          {['all', 'pending', 'completed'].map(status => (
+          {['all', 'pending', 'completed', 'cancelled'].map(status => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
@@ -154,7 +186,7 @@ function OrderHistory() {
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              {status} ({statusCounts[status]})
+              {status} ({statusCounts[status] || 0})
             </button>
           ))}
         </div>
@@ -182,7 +214,7 @@ function OrderHistory() {
                 <th className="text-left table-cell">Items</th>
                 <th className="text-right table-cell">Total</th>
                 <th className="text-center table-cell">Payment</th>
-                <th className="text-center table-cell">Status</th>
+                <th className="text-center table-cell w-36">Status</th>
                 <th className="text-center table-cell w-20">Actions</th>
               </tr>
             </thead>
@@ -196,7 +228,7 @@ function OrderHistory() {
                     <td className="table-cell"><div className="h-4 bg-gray-200 rounded w-32" /></td>
                     <td className="table-cell"><div className="h-4 bg-gray-200 rounded w-16 ml-auto" /></td>
                     <td className="table-cell"><div className="h-5 bg-gray-200 rounded-full w-16 mx-auto" /></td>
-                    <td className="table-cell"><div className="h-5 bg-gray-200 rounded-full w-16 mx-auto" /></td>
+                    <td className="table-cell"><div className="h-6 bg-gray-200 rounded-full w-24 mx-auto" /></td>
                     <td className="table-cell"><div className="h-5 bg-gray-200 rounded w-8 mx-auto" /></td>
                   </tr>
                 ))
@@ -269,14 +301,27 @@ function OrderHistory() {
                           {order.paymentMethod?.replace('-', ' ')}
                         </span>
                       </td>
-                      <td className="table-cell text-center">
-                        <span className={`badge ${
-                          order.status === 'completed' ? 'badge-success' :
-                          order.status === 'pending' ? 'badge-warning' :
-                          'badge-neutral'
-                        }`}>
-                          {order.status}
-                        </span>
+                      <td className="table-cell text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="inline-block relative">
+                          <select
+                            value={order.status}
+                            onChange={(e) => handleSingleStatusChange(order._id, e.target.value)}
+                            className={`text-xs font-semibold px-3 py-1 rounded-full cursor-pointer border appearance-none pr-6 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all ${
+                              order.status === 'completed'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                : order.status === 'pending'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                : order.status === 'cancelled'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                                : 'bg-gray-50 text-gray-700 border-gray-200'
+                            }`}
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                          <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
+                        </div>
                       </td>
                       <td className="table-cell text-center">
                         <button
@@ -329,12 +374,36 @@ function OrderHistory() {
             </button>
           </div>
 
+          <div className="h-4 w-px bg-gray-700"></div>
+
+          {/* Bulk Status Selector */}
+          <div className="flex items-center gap-1.5 bg-gray-800/90 border border-gray-700/80 rounded-xl px-3 py-1.5 shadow-inner">
+            <span className="text-xs text-gray-400 font-medium whitespace-nowrap">Status:</span>
+            <select
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleBulkStatusChange(e.target.value)
+                  e.target.value = ""
+                }
+              }}
+              disabled={isUpdatingStatus}
+              className="bg-transparent text-xs text-gray-200 border-none outline-none font-semibold cursor-pointer pr-2"
+            >
+              <option value="" disabled className="bg-gray-900 text-gray-400">Mark as...</option>
+              <option value="pending" className="bg-gray-900 text-amber-400">Mark Pending</option>
+              <option value="completed" className="bg-gray-900 text-emerald-400">Mark Completed</option>
+              <option value="cancelled" className="bg-gray-900 text-rose-400">Mark Cancelled</option>
+            </select>
+            {isUpdatingStatus && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />}
+          </div>
+
           <button
             onClick={() => setIsBulkDeleteModalOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 active:bg-red-700 rounded-xl transition-all shadow-md hover:shadow-red-600/25 ml-1"
           >
             <Trash2 className="w-4 h-4" />
-            Delete Selected ({selectedIds.length})
+            Delete ({selectedIds.length})
           </button>
         </div>
       )}

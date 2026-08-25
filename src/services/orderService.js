@@ -24,6 +24,16 @@ const orderService = {
   bulkDeleteOrders: async (ids) => {
     const response = await api.post('/orders/bulk-delete', { ids });
     return response.data;
+  },
+
+  updateOrderStatus: async (id, status) => {
+    const response = await api.patch(`/orders/${id}/status`, { status });
+    return response.data;
+  },
+
+  bulkUpdateOrderStatus: async (ids, status) => {
+    const response = await api.post('/orders/bulk-status', { ids, status });
+    return response.data;
   }
 };
 
