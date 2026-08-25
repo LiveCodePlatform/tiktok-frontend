@@ -14,6 +14,16 @@ const orderService = {
   createOrder: async (orderData) => {
     const response = await api.post('/orders', orderData);
     return response.data;
+  },
+
+  deleteOrder: async (id) => {
+    const response = await api.delete(`/orders/${id}`);
+    return response.data;
+  },
+
+  bulkDeleteOrders: async (ids) => {
+    const response = await api.post('/orders/bulk-delete', { ids });
+    return response.data;
   }
 };
 

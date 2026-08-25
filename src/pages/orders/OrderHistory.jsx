@@ -1,12 +1,21 @@
-import { useState, useEffect } from 'react'
-import { Search, RefreshCw, Clock, ShoppingCart } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Search, RefreshCw, Clock, ShoppingCart, Trash2, AlertTriangle, Loader2, X } from 'lucide-react'
+import { useToast } from '../../components/Toast'
 import orderService from '../../services/orderService'
 
 function OrderHistory() {
+  const toast = useToast()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+
+  // Selection and deletion states
+  const [selectedIds, setSelectedIds] = useState([])
+  const [deleteId, setDeleteId] = useState(null)
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const selectAllCheckboxRef = useRef(null)
 
   useEffect(() => {
     fetchOrders()
@@ -36,6 +45,73 @@ function OrderHistory() {
     return matchesSearch && matchesStatus
   })
 
+  // Master checkbox indeterminate logic
+  const isAllSelected = filteredOrders.length > 0 && filteredOrders.every(o => selectedIds.includes(o._id))
+  const isSomeSelected = filteredOrders.some(o => selectedIds.includes(o._id)) && !isAllSelected
+
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.indeterminate = isSomeSelected
+    }
+  }, [isSomeSelected])
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(filteredOrders.map(o => o._id))
+    }
+  }
+
+  const handleToggleSelectOrder = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    )
+  }
+
+  const handleDeleteSingle = async () => {
+    if (!deleteId) return
+    setIsDeleting(true)
+    try {
+      const res = await orderService.deleteOrder(deleteId)
+      if (res.success) {
+        setOrders(prev => prev.filter(o => o._id !== deleteId))
+        setSelectedIds(prev => prev.filter(id => id !== deleteId))
+        toast.success('Order deleted and stock restored successfully!')
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message
+      toast.error(`Delete failed: ${errorMsg}`)
+    } finally {
+      setIsDeleting(false)
+      setDeleteId(null)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return
+    setIsDeleting(true)
+    try {
+      const res = await orderService.bulkDeleteOrders(selectedIds)
+      if (res.success) {
+        const { deletedCount, deletedIds } = res.data || {}
+        if (deletedIds && deletedIds.length > 0) {
+          setOrders(prev => prev.filter(o => !deletedIds.includes(o._id)))
+        } else {
+          fetchOrders()
+        }
+        setSelectedIds([])
+        setIsBulkDeleteModalOpen(false)
+        toast.success(`Successfully deleted ${deletedCount || selectedIds.length} order(s) and restored stock!`)
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message
+      toast.error(`Bulk delete failed: ${errorMsg}`)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const statusCounts = {
     all: orders.length,
     pending: orders.filter(o => o.status === 'pending').length,
@@ -43,7 +119,7 @@ function OrderHistory() {
   }
 
   return (
-    <div className="animate-in fade-in duration-300">
+    <div className="animate-in fade-in duration-300 relative pb-16">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Order History</h2>
@@ -85,34 +161,48 @@ function OrderHistory() {
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden">
+      <div className="card overflow-hidden border border-gray-200 shadow-sm rounded-xl">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="table-header">
+              <tr className="table-header bg-gray-50/80 border-b border-gray-200">
+                <th className="table-cell w-12 text-center">
+                  <input
+                    type="checkbox"
+                    ref={selectAllCheckboxRef}
+                    checked={isAllSelected}
+                    onChange={handleToggleSelectAll}
+                    disabled={filteredOrders.length === 0}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer disabled:opacity-40"
+                    title="Select all visible orders"
+                  />
+                </th>
                 <th className="text-left table-cell">Date</th>
                 <th className="text-left table-cell">Customer</th>
                 <th className="text-left table-cell">Items</th>
                 <th className="text-right table-cell">Total</th>
                 <th className="text-center table-cell">Payment</th>
                 <th className="text-center table-cell">Status</th>
+                <th className="text-center table-cell w-20">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="animate-pulse">
+                    <td className="table-cell"><div className="h-4 bg-gray-200 rounded w-4 mx-auto" /></td>
                     <td className="table-cell"><div className="h-4 bg-gray-200 rounded w-20" /></td>
                     <td className="table-cell"><div className="h-4 bg-gray-200 rounded w-24" /></td>
                     <td className="table-cell"><div className="h-4 bg-gray-200 rounded w-32" /></td>
                     <td className="table-cell"><div className="h-4 bg-gray-200 rounded w-16 ml-auto" /></td>
                     <td className="table-cell"><div className="h-5 bg-gray-200 rounded-full w-16 mx-auto" /></td>
                     <td className="table-cell"><div className="h-5 bg-gray-200 rounded-full w-16 mx-auto" /></td>
+                    <td className="table-cell"><div className="h-5 bg-gray-200 rounded w-8 mx-auto" /></td>
                   </tr>
                 ))
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-16 text-center">
+                  <td colSpan="8" className="px-6 py-16 text-center">
                     <div className="flex flex-col items-center">
                       <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                         <ShoppingCart className="w-7 h-7 text-gray-400" />
@@ -124,62 +214,216 @@ function OrderHistory() {
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map(order => (
-                  <tr key={order._id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="table-cell">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-gray-400" />
-                        <div>
-                          <p className="text-gray-900">
-                            {new Date(order.createdAt).toLocaleDateString()}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {new Date(order.createdAt).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="table-cell">
-                      <p className="font-medium text-gray-900">{order.name}</p>
-                      <p className="text-xs text-gray-400">{order.phone}</p>
-                    </td>
-                    <td className="table-cell">
-                      <div className="space-y-1">
-                        {order.items?.map((item, idx) => (
-                          <div key={idx} className="text-sm">
-                            <span className="text-gray-900">{item.product?.name || item.productCode}</span>
-                            <span className="text-gray-400 ml-1">x{item.quantity}</span>
+                filteredOrders.map(order => {
+                  const isSelected = selectedIds.includes(order._id)
+                  return (
+                    <tr
+                      key={order._id}
+                      className={`transition-colors group ${
+                        isSelected ? 'bg-blue-50/60 hover:bg-blue-50' : 'hover:bg-gray-50/50'
+                      }`}
+                    >
+                      <td className="table-cell text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleSelectOrder(order._id)}
+                          className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </td>
+                      <td className="table-cell">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-gray-400" />
+                          <div>
+                            <p className="text-gray-900 font-medium">
+                              {new Date(order.createdAt).toLocaleDateString()}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {new Date(order.createdAt).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
                           </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="table-cell text-right font-bold text-emerald-600">
-                      {order.totalAmount?.toLocaleString()} MMK
-                    </td>
-                    <td className="table-cell text-center">
-                      <span className="badge-neutral capitalize text-xs">
-                        {order.paymentMethod?.replace('-', ' ')}
-                      </span>
-                    </td>
-                    <td className="table-cell text-center">
-                      <span className={`badge ${
-                        order.status === 'completed' ? 'badge-success' :
-                        order.status === 'pending' ? 'badge-warning' :
-                        'badge-neutral'
-                      }`}>
-                        {order.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
+                        </div>
+                      </td>
+                      <td className="table-cell">
+                        <p className="font-medium text-gray-900">{order.name}</p>
+                        <p className="text-xs text-gray-400">{order.phone}</p>
+                      </td>
+                      <td className="table-cell">
+                        <div className="space-y-1">
+                          {order.items?.map((item, idx) => (
+                            <div key={idx} className="text-sm">
+                              <span className="text-gray-900">{item.product?.name || item.productCode}</span>
+                              <span className="text-gray-400 ml-1">x{item.quantity}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="table-cell text-right font-bold text-emerald-600">
+                        {order.totalAmount?.toLocaleString()} MMK
+                      </td>
+                      <td className="table-cell text-center">
+                        <span className="badge-neutral capitalize text-xs">
+                          {order.paymentMethod?.replace('-', ' ')}
+                        </span>
+                      </td>
+                      <td className="table-cell text-center">
+                        <span className={`badge ${
+                          order.status === 'completed' ? 'badge-success' :
+                          order.status === 'pending' ? 'badge-warning' :
+                          'badge-neutral'
+                        }`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="table-cell text-center">
+                        <button
+                          onClick={() => setDeleteId(order._id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                          title="Delete Order"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Floating Batch Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-gray-900/95 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-2xl border border-gray-800 flex items-center gap-4 animate-in slide-in-from-bottom-5 duration-200">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2.5 w-2.5 rounded-full bg-blue-400 animate-pulse"></span>
+            <span className="text-sm font-semibold text-white">
+              {selectedIds.length}
+            </span>
+            <span className="text-xs text-gray-300">
+              order{selectedIds.length > 1 ? 's' : ''} selected
+            </span>
+          </div>
+
+          <div className="h-4 w-px bg-gray-700"></div>
+
+          <div className="flex items-center gap-2">
+            {selectedIds.length < filteredOrders.length && (
+              <button
+                onClick={() => setSelectedIds(filteredOrders.map(o => o._id))}
+                className="text-xs text-blue-400 hover:text-blue-300 font-medium px-2 py-1 rounded hover:bg-white/5 transition-colors"
+              >
+                Select all {filteredOrders.length}
+              </button>
+            )}
+            <button
+              onClick={() => setSelectedIds([])}
+              className="text-xs text-gray-400 hover:text-gray-200 font-medium px-2 py-1 rounded hover:bg-white/5 transition-colors flex items-center gap-1"
+            >
+              <X className="w-3.5 h-3.5" />
+              Clear selection
+            </button>
+          </div>
+
+          <button
+            onClick={() => setIsBulkDeleteModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 active:bg-red-700 rounded-xl transition-all shadow-md hover:shadow-red-600/25 ml-1"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Selected ({selectedIds.length})
+          </button>
+        </div>
+      )}
+
+      {/* Single Delete Confirmation Modal */}
+      {deleteId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 animate-in zoom-in duration-200">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Order?</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                This order will be permanently deleted and its items will be automatically returned back to inventory stock.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteId(null)}
+                  disabled={isDeleting}
+                  className="btn-secondary flex-1 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteSingle}
+                  disabled={isDeleting}
+                  className="btn-danger flex-1 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {isBulkDeleteModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in zoom-in duration-200 border border-gray-100">
+            <div className="text-center">
+              <div className="w-14 h-14 bg-red-50 border border-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
+                <AlertTriangle className="w-7 h-7" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Delete {selectedIds.length} Selected Order{selectedIds.length > 1 ? 's' : ''}?
+              </h3>
+              <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+                You are about to permanently delete <strong className="text-gray-800">{selectedIds.length}</strong> order{selectedIds.length > 1 ? 's' : ''}.
+              </p>
+              
+              <div className="bg-emerald-50 border border-emerald-200/80 rounded-lg p-3 text-left mb-6 flex items-start gap-2.5">
+                <RefreshCw className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-emerald-800 leading-normal">
+                  <strong>Stock Restoration:</strong> All product quantities in the deleted orders will be automatically added back into your product inventory.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsBulkDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                  className="btn-secondary flex-1 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={isDeleting}
+                  className="btn-danger flex-1 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Delete {selectedIds.length} Order{selectedIds.length > 1 ? 's' : ''}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
