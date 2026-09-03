@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, RefreshCw, Clock, ShoppingCart, Trash2, AlertTriangle, Loader2, X, ChevronDown } from 'lucide-react'
+import { Search, RefreshCw, Clock, ShoppingCart, Trash2, AlertTriangle, Loader2, X, ChevronDown, Eye } from 'lucide-react'
 import { useToast } from '../../components/Toast'
+import OrderDetailModal from '../../components/orders/OrderDetailModal'
 import orderService from '../../services/orderService'
 
 function OrderHistory() {
@@ -9,6 +10,7 @@ function OrderHistory() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [viewingOrder, setViewingOrder] = useState(null)
 
   // Selection and deletion states
   const [selectedIds, setSelectedIds] = useState([])
@@ -252,7 +254,8 @@ function OrderHistory() {
                   return (
                     <tr
                       key={order._id}
-                      className={`transition-colors group ${
+                      onClick={() => setViewingOrder(order)}
+                      className={`transition-colors cursor-pointer group ${
                         isSelected ? 'bg-blue-50/60 hover:bg-blue-50' : 'hover:bg-gray-50/50'
                       }`}
                     >
@@ -261,7 +264,7 @@ function OrderHistory() {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => handleToggleSelectOrder(order._id)}
-                          className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                          className="w-4 h-4 text-[#ff5b00] rounded border-gray-300 focus:ring-orange-500 cursor-pointer"
                         />
                       </td>
                       <td className="table-cell">
@@ -281,7 +284,7 @@ function OrderHistory() {
                         </div>
                       </td>
                       <td className="table-cell">
-                        <p className="font-medium text-gray-900">{order.name}</p>
+                        <p className="font-semibold text-gray-900 group-hover:text-[#ff5b00] transition-colors">{order.name}</p>
                         <p className="text-xs text-gray-400">{order.phone}</p>
                       </td>
                       <td className="table-cell">
@@ -289,7 +292,7 @@ function OrderHistory() {
                           {order.items?.map((item, idx) => (
                             <div key={idx} className="text-sm">
                               <span className="text-gray-900">{item.product?.name || item.productCode}</span>
-                              <span className="text-gray-400 ml-1">x{item.quantity}</span>
+                              <span className="text-gray-400 ml-1 font-medium">x{item.quantity}</span>
                             </div>
                           ))}
                         </div>
@@ -299,7 +302,7 @@ function OrderHistory() {
                       </td>
                       <td className="table-cell text-center">
                         <span className="badge-neutral capitalize text-xs">
-                          {order.paymentMethod?.replace('-', ' ')}
+                          {order.paymentMethod ? order.paymentMethod.replace('-', ' ') : 'Cash'}
                         </span>
                       </td>
                       <td className="table-cell text-center" onClick={(e) => e.stopPropagation()}>
@@ -307,7 +310,7 @@ function OrderHistory() {
                           <select
                             value={order.status}
                             onChange={(e) => handleSingleStatusChange(order._id, e.target.value)}
-                            className={`text-xs font-semibold px-3 py-1 rounded-full cursor-pointer border appearance-none pr-6 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all ${
+                            className={`text-xs font-semibold px-3 py-1 rounded-full cursor-pointer border appearance-none pr-6 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all ${
                               order.status === 'completed'
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                                 : order.status === 'pending'
@@ -324,14 +327,26 @@ function OrderHistory() {
                           <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
                         </div>
                       </td>
-                      <td className="table-cell text-center">
-                        <button
-                          onClick={() => setDeleteId(order._id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                          title="Delete Order"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <td className="table-cell text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* View Order Details Button */}
+                          <button
+                            onClick={() => setViewingOrder(order)}
+                            className="w-8 h-8 rounded-lg bg-[#fff2eb] hover:bg-[#ffe2d1] text-[#ff5b00] flex items-center justify-center transition-colors shadow-sm"
+                            title="View Full Order Details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+
+                          {/* Delete Order Button */}
+                          <button
+                            onClick={() => setDeleteId(order._id)}
+                            className="w-8 h-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors"
+                            title="Delete Order"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -494,6 +509,22 @@ function OrderHistory() {
           </div>
         </div>
       )}
+
+      {/* Order Detail Modal */}
+      <OrderDetailModal
+        order={viewingOrder}
+        isOpen={Boolean(viewingOrder)}
+        onClose={() => setViewingOrder(null)}
+        onStatusUpdate={(orderId, newStatus) => {
+          setOrders((prev) =>
+            prev.map((o) => (o._id === orderId ? { ...o, status: newStatus } : o))
+          )
+          if (viewingOrder && viewingOrder._id === orderId) {
+            setViewingOrder((prev) => ({ ...prev, status: newStatus }))
+          }
+        }}
+        onDelete={(id) => setDeleteId(id)}
+      />
     </div>
   )
 }
