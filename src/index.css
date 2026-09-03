@@ -27,7 +27,7 @@
 
 @layer components {
   .card {
-    @apply bg-white rounded-xl border border-gray-100 shadow-sm;
+    @apply bg-white rounded-2xl border border-gray-100 shadow-sm;
   }
 
   .card-hover {
@@ -35,32 +35,37 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg
-           hover:bg-blue-700 active:bg-blue-800 transition-colors duration-150
-           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#ff5b00] text-white font-medium rounded-xl
+           hover:bg-[#e04e00] active:bg-[#c44400] transition-colors duration-150 shadow-sm
+           focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-gray-700 font-medium rounded-lg
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-gray-700 font-medium rounded-xl
            border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150
-           focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+           focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2;
+  }
+
+  .btn-accent-light {
+    @apply inline-flex items-center justify-center gap-2 p-2 bg-[#fff2eb] text-[#ff5b00] font-medium rounded-lg
+           hover:bg-[#ffe5d6] active:bg-[#ffd7c0] transition-colors duration-150;
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white font-medium rounded-xl
            hover:bg-red-700 active:bg-red-800 transition-colors duration-150
            focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-3 py-2 text-gray-600 font-medium rounded-lg
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 text-gray-600 font-medium rounded-xl
            hover:bg-gray-100 active:bg-gray-200 transition-colors duration-150;
   }
 
   .input {
-    @apply w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm
+    @apply w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm
            placeholder:text-gray-400 transition-colors duration-150
-           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+           focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-[#ff5b00]
            disabled:bg-gray-50 disabled:text-gray-500;
   }
 
@@ -73,30 +78,30 @@
   }
 
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide;
   }
 
   .badge-success {
-    @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200;
+    @apply badge bg-[#ecfdf5] text-[#059669];
   }
 
   .badge-warning {
-    @apply badge bg-amber-50 text-amber-700 border border-amber-200;
+    @apply badge bg-amber-50 text-amber-700;
   }
 
   .badge-danger {
-    @apply badge bg-red-50 text-red-700 border border-red-200;
+    @apply badge bg-red-50 text-red-600;
   }
 
   .badge-neutral {
-    @apply badge bg-gray-100 text-gray-600 border border-gray-200;
+    @apply badge bg-gray-100 text-gray-600;
   }
 
   .table-header {
-    @apply text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/80;
+    @apply text-xs font-bold text-gray-900 uppercase tracking-wider bg-transparent;
   }
 
   .table-cell {
-    @apply px-6 py-4 text-sm text-gray-700;
+    @apply px-4 py-3.5 text-sm text-gray-700;
   }
 }

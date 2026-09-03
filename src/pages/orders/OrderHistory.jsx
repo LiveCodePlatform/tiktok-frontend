@@ -151,11 +151,12 @@ function OrderHistory() {
   }
 
   return (
-    <div className="animate-in fade-in duration-300 relative pb-16">
-      <div className="flex items-center justify-between mb-6">
+    <div className="h-full flex flex-col min-h-0 animate-in fade-in duration-300">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Order History</h2>
-          <p className="text-sm text-gray-500 mt-1">View and manage all customer orders</p>
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Order History</h2>
+          <p className="text-sm text-gray-500 mt-0.5">View and manage all customer orders</p>
         </div>
         <button onClick={fetchOrders} className="btn-ghost text-sm">
           <RefreshCw className="w-4 h-4" />
@@ -163,10 +164,10 @@ function OrderHistory() {
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+      {/* Filters - Fixed */}
+      <div className="flex-shrink-0 flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             placeholder="Search by name, phone, product code..."
@@ -175,12 +176,12 @@ function OrderHistory() {
             className="input pl-10"
           />
         </div>
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
           {['all', 'pending', 'completed', 'cancelled'].map(status => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors capitalize ${
+              className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors capitalize ${
                 statusFilter === status
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
@@ -192,30 +193,30 @@ function OrderHistory() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden border border-gray-200 shadow-sm rounded-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="table-header bg-gray-50/80 border-b border-gray-200">
-                <th className="table-cell w-12 text-center">
+      {/* Table Card - Flex-1 Scrollable */}
+      <div className="flex-1 min-h-0 flex flex-col card overflow-hidden border border-gray-100 shadow-sm rounded-2xl">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className="sticky top-0 bg-white z-10 shadow-[0_1px_0_0_rgba(0,0,0,0.06)]">
+              <tr className="border-b border-gray-100 bg-white">
+                <th className="table-cell w-12 text-center bg-white">
                   <input
                     type="checkbox"
                     ref={selectAllCheckboxRef}
                     checked={isAllSelected}
                     onChange={handleToggleSelectAll}
                     disabled={filteredOrders.length === 0}
-                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer disabled:opacity-40"
+                    className="w-4 h-4 text-[#ff5b00] rounded border-gray-300 focus:ring-orange-500 cursor-pointer disabled:opacity-40"
                     title="Select all visible orders"
                   />
                 </th>
-                <th className="text-left table-cell">Date</th>
-                <th className="text-left table-cell">Customer</th>
-                <th className="text-left table-cell">Items</th>
-                <th className="text-right table-cell">Total</th>
-                <th className="text-center table-cell">Payment</th>
-                <th className="text-center table-cell w-36">Status</th>
-                <th className="text-center table-cell w-20">Actions</th>
+                <th className="table-cell text-xs font-bold text-gray-900 uppercase tracking-wider bg-white">Date</th>
+                <th className="table-cell text-xs font-bold text-gray-900 uppercase tracking-wider bg-white">Customer</th>
+                <th className="table-cell text-xs font-bold text-gray-900 uppercase tracking-wider bg-white">Items</th>
+                <th className="table-cell text-right text-xs font-bold text-gray-900 uppercase tracking-wider bg-white">Total</th>
+                <th className="table-cell text-center text-xs font-bold text-gray-900 uppercase tracking-wider bg-white">Payment</th>
+                <th className="table-cell text-center text-xs font-bold text-gray-900 uppercase tracking-wider w-36 bg-white">Status</th>
+                <th className="table-cell text-center text-xs font-bold text-gray-900 uppercase tracking-wider w-20 bg-white">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

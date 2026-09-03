@@ -8,11 +8,21 @@ export default {
       },
       colors: {
         brand: {
-          50: "#eff6ff",
-          100: "#dbeafe",
-          500: "#3b82f6",
-          600: "#2563eb",
-          700: "#1d4ed8",
+          50: '#fff7ed',
+          100: '#ffedd5',
+          200: '#fed7aa',
+          300: '#fdba74',
+          400: '#fb923c',
+          500: '#ff5b00', // Reference vibrant primary orange
+          600: '#ea580c',
+          700: '#c2410c',
+          800: '#9a3412',
+          900: '#7c2d12',
+        },
+        primary: {
+          DEFAULT: '#ff5b00',
+          hover: '#e04e00',
+          light: '#fff2eb',
         },
       },
       animation: {
